@@ -9,7 +9,7 @@ on:
 
 jobs:
   ci:
-    runs-on: 
+    runs-on:
       - self-hosted
       - Linux
       - X64
@@ -25,12 +25,16 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y ca-certificates curl unzip python3 python3-pip git
 
-          PACKER_VERSION="$(curl -fsSL https://checkpoint-api.hashicorp.com/v1/check/packer | python3 -c 'import sys, json; print(json.load(sys.stdin)["current_version"])')"
+          PACKER_VERSION="$(curl -fsSL https://checkpoint-api.hashicorp.com/v1/check/packer | \
+            python3 -c 'import sys, json; print(json.load(sys.stdin)["current_version"])')"
+
           curl -fsSLo /tmp/packer.zip "https://releases.hashicorp.com/packer/$PACKER_VERSION/packer_${PACKER_VERSION}_linux_amd64.zip"
           sudo unzip -o /tmp/packer.zip -d /usr/local/bin
           packer version
 
-          pip3 install checkov
+          # Required for Ubuntu 24.04 (PEP 668 fix)
+          pip3 install checkov --break-system-packages
+
           curl -fsSLo tfsec "https://github.com/aquasecurity/tfsec/releases/latest/download/tfsec-linux-amd64"
           chmod +x tfsec
           sudo mv tfsec /usr/local/bin/
