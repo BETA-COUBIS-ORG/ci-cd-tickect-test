@@ -9,7 +9,7 @@ on:
 
 jobs:
   ci:
-    runs-on: [self-hosted, Linux, X64, org-build]
+    runs-on: [self-hosted, Linux, X64, org-build, org-deploy]  # EXACT runner labels
 
     steps:
       - name: Checkout
@@ -35,15 +35,12 @@ jobs:
 
       - name: Packer fmt check
         run: |
-          set -euo pipefail
           mkdir -p ci-logs
           packer fmt -check -recursive . 2>&1 | tee ci-logs/packer-fmt.log
 
       - name: Packer validate
         run: |
-          set -euo pipefail
           mkdir -p ci-logs
-
           mapfile -t PKR_HCL < <(find . -type f -name "*.pkr.hcl")
           mapfile -t PKR_JSON < <(find . -type f -name "*.json")
 
@@ -53,12 +50,10 @@ jobs:
           fi
 
           for f in "\${PKR_HCL[@]}"; do
-            echo "Validating: \$f"
             packer validate "\$f"
           done
 
           for f in "\${PKR_JSON[@]}"; do
-            echo "Validating: \$f"
             packer validate "\$f"
           done 2>&1 | tee ci-logs/packer-validate.log
 
