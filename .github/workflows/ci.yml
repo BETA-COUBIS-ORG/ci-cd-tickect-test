@@ -28,11 +28,9 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y --no-install-recommends ca-certificates curl unzip python3 python3-pip git
 
-          PACKER_VERSION="$(curl -fsSL https://checkpoint-api.hashicorp.com/v1/check/packer | python3 - << 'EOF2'
-           import sys, json
-              print(json.load(sys.stdin)["current_version"])
-                EOF2
-          )"
+          # SAFE one-line version (no heredoc)
+          PACKER_VERSION=$(curl -fsSL https://checkpoint-api.hashicorp.com/v1/check/packer \
+            | python3 -c "import sys, json; print(json.load(sys.stdin)['current_version'])")
 
           curl -fsSLo /tmp/packer.zip "https://releases.hashicorp.com/packer/${PACKER_VERSION}/packer_${PACKER_VERSION}_linux_amd64.zip"
           sudo unzip -o /tmp/packer.zip -d /usr/local/bin
