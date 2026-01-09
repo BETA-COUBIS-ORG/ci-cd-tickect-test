@@ -1,3 +1,106 @@
+#name: CI (Packer + IaC Security)
+#
+#on:
+#  push:
+#    branches: [main, develop]
+#  pull_request:
+#    types: [opened, synchronize, reopened]
+#    branches: [main, develop]
+#
+#jobs:
+#  ci:
+#    runs-on: 
+#      - self-hosted
+#      - Linux
+#      - X64
+#      - org-build
+#      - org-deploy
+#
+#    steps:
+#      - name: Checkout
+#        uses: actions/checkout@v4
+#        with:
+#          persist-credentials: false
+#
+#      - name: Prepare tools (packer, python/pip, curl, unzip)
+#        run: |
+#          set -euo pipefail
+#          sudo apt-get update -y
+#          sudo apt-get install -y --no-install-recommends ca-certificates curl unzip python3 python3-pip git
+#
+#          # SAFE one-line version (no heredoc)
+#          PACKER_VERSION=$(curl -fsSL https://checkpoint-api.hashicorp.com/v1/check/packer \
+#            | python3 -c "import sys, json; print(json.load(sys.stdin)['current_version'])")
+#
+#          curl -fsSLo /tmp/packer.zip "https://releases.hashicorp.com/packer/${PACKER_VERSION}/packer_${PACKER_VERSION}_linux_amd64.zip"
+#          sudo unzip -o /tmp/packer.zip -d /usr/local/bin
+#          packer version
+#
+#          # Ubuntu 24.04 PEP 668 fix
+#          pip3 install checkov --break-system-packages
+#
+#          curl -fsSLo tfsec "https://github.com/aquasecurity/tfsec/releases/latest/download/tfsec-linux-amd64"
+#          chmod +x tfsec
+#          sudo mv tfsec /usr/local/bin/
+#
+#      - name: Packer fmt check
+#        run: |
+#          mkdir -p ci-logs
+#          packer fmt -check -recursive . 2>&1 | tee ci-logs/packer-fmt.log
+#
+#      - name: Packer validate
+#        run: |
+#          mkdir -p ci-logs
+#
+#          echo "Searching for packer templates..."
+#
+#          FILES=$(find . -type f \( -name "*.pkr.hcl" -o -name "*.json" \))
+#
+#          if [ -z "$FILES" ]; then
+#            echo "No packer templates found. Skipping validation."
+#            exit 0
+#          fi
+#
+#          echo "Found files:"
+#          echo "$FILES"
+#
+#          echo "$FILES" | while IFS= read -r f; do
+#            echo "Validating: $f"
+#            packer validate "$f"
+#          done 2>&1 | tee ci-logs/packer-validate.log
+#
+#      - name: Detect Terraform
+#        id: detect_tf
+#        run: |
+#          if find . -type f -name "*.tf" -o -name "*.tfvars" | grep -q .; then
+#            echo "has_tf=true" >> $GITHUB_OUTPUT
+#          else
+#            echo "has_tf=false" >> $GITHUB_OUTPUT
+#          fi
+#
+#      - name: Checkov Scan
+#        if: ${{ steps.detect_tf.outputs.has_tf == 'true' }}
+#        run: |
+#          mkdir -p ci-logs
+#          checkov -d . 2>&1 | tee ci-logs/checkov.log
+#
+#      - name: tfsec Scan
+#        if: ${{ steps.detect_tf.outputs.has_tf == 'true' }}
+#        run: |
+#          mkdir -p ci-logs
+#          tfsec . 2>&1 | tee ci-logs/tfsec.log
+#
+#      - name: Upload CI logs
+#        if: ${{ always() }}
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: ci-logs
+#          path: ci-logs
+#
+#
+#
+          #############################################################################################
+
 name: CI (Packer + IaC Security)
 
 on:
